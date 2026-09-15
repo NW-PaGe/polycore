@@ -153,17 +153,16 @@ def auto_chunk_size(n_samples: int, safety_fraction: float = 0.8, min_chunk: int
 
 def build_config(args) -> Config:
     """Build Config from argparse args."""
-    split = getattr(args, "snippy", False) or getattr(args, "split", False)
-    ref_by_name = getattr(args, "snippy", False) or getattr(args, "ref_by_name", False)
 
+    print(args.snippy, args.split, args.ref_by_name)
     cfg = Config(
         min_gf=args.min_gf,
         min_cf=args.min_cf,
         progressive=args.progressive,
         ploidy=args.ploidy,
         chunk_size=args.chunk_size,
-        split=split,
-        ref_by_name=ref_by_name,
+        split=args.snippy or args.split,
+        ref_by_name=args.snippy or args.ref_by_name,
         bed_file=getattr(args, "mask", None),
     )
 
