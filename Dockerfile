@@ -21,24 +21,25 @@ ARG GID=1000
 RUN groupadd -g ${GID} app && useradd -m -u ${UID} -g ${GID} app
 WORKDIR /app
 
-# ---- Builder layer (for caching installs) ----
+# ---- Builder layer ----
 FROM base AS builder
 
-# Only copy files that affect dependency resolution first (better caching)
 COPY pyproject.toml README.md LICENSE /app/
-# If you have a src layout, copy it next
 COPY src /app/src
 
-# Install the package (and its runtime deps) into a wheels dir
 RUN python -m pip install --upgrade pip wheel \
- && python -m pip wheel --no-deps --wheel-dir /wheels /app
+ # Build screed without isolation, against a setuptools that still has pkg_resources
+ && python -m pip install "setuptools<81" "setuptools_scm[toml]<6" \
+ && python -m pip wheel --no-build-isolation --wheel-dir /wheels "screed>=1.1,<1.2" \
+ # Build polycore plus all its deps, reusing the screed wheel just built
+ && python -m pip wheel --prefer-binary --find-links /wheels --wheel-dir /wheels /app
 
 # ---- Final runtime image ----
 FROM base AS runtime
 
-# Copy built wheels and install
 COPY --from=builder /wheels /wheels
-RUN python -m pip install /wheels/*.whl
+RUN python -m pip install --no-index /wheels/*.whl \
+ && rm -rf /wheels
 
 # Drop to non-root
 USER app
